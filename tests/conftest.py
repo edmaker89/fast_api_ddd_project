@@ -1,6 +1,6 @@
 import asyncio
 from uuid import UUID
-from store.core.schemas.product import ProductIn
+from store.core.schemas.product import ProductIn, ProductUpdate
 from store.db.mongo import db_client
 import pytest
 
@@ -24,9 +24,9 @@ async def clear_collections(mongo_client):
     yield
     collections_name = await mongo_client.get_database().list_collection_names()
     for collection_name in collections_name:
-        if collection_name.starswith("system"):
+        if collection_name.startswith("system"):
             continue
-        await mongo_client.get_database()[collection_name].delete_many({})
+        # await mongo_client.get_database()[collection_name].delete_many({})
 
 
 @pytest.fixture
@@ -37,3 +37,8 @@ def product_id() -> UUID:
 @pytest.fixture
 def product_in(product_id):
     return ProductIn(**product_data(), id=product_id)
+
+
+@pytest.fixture
+def product_up(product_id):
+    return ProductUpdate(**product_data(), id=product_id)
