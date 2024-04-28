@@ -1,5 +1,7 @@
-from typing import List
+from datetime import datetime
+from typing import List, Optional
 from uuid import UUID
+from bson import Decimal128
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from store.core.schemas.product import (
     ProductIn,
@@ -35,14 +37,26 @@ class ProductUsecases:
 
         return ProductOut(**result)
 
-    async def query(self) -> List[ProductOut]:
-        return [ProductOut(**item) async for item in self.collection.find()]
+    async def query(
+        self, min_price: Optional[float] = None, max_price: Optional[float] = None
+    ) -> List[ProductOut]:
+        filter_query = {}
+        if min_price is not None:
+            filter_query["price"] = {"$gte": Decimal128(str(min_price))}
+        if max_price is not None:
+            if "price" in filter_query:
+                filter_query["price"]["$lte"] = Decimal128(str(max_price))
+            else:
+                filter_query["price"] = {"$lte": Decimal128(str(max_price))}
+
+        return [ProductOut(**item) async for item in self.collection.find(filter_query)]
 
     async def update(self, id: UUID, body: ProductUpdate) -> ProductUpdateOut:
-        product = ProductUpdate(**body.model_dump(exclude_none=True))
+        update_data = body.model_dump(exclude_none=True)
+        update_data["updated_at"] = datetime.now()
         result = await self.collection.find_one_and_update(
             filter={"id": id},
-            update={"$set": product.model_dump()},
+            update={"$set": update_data},
             return_document=pymongo.ReturnDocument.AFTER,
         )
 

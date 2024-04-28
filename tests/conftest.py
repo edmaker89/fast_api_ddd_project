@@ -3,7 +3,7 @@ from uuid import UUID
 from store.core.schemas.product import ProductIn, ProductUpdate
 from store.db.mongo import db_client
 import pytest
-
+from httpx import AsyncClient
 from store.usecases.product import product_usecases
 from tests.schemas.factories import product_data, products_data
 
@@ -28,6 +28,19 @@ async def clear_collections(mongo_client):
         if collection_name.startswith("system"):
             continue
         await mongo_client.get_database()[collection_name].delete_many({})
+
+
+@pytest.fixture
+async def client() -> AsyncClient:
+    from store.main import app
+
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        yield ac
+
+
+@pytest.fixture
+def products_url() -> str:
+    return "/products/"
 
 
 @pytest.fixture
